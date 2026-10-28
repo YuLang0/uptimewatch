@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 색상 토큰: 라이트/다크 각각 선택된 값 (상태 색상은 두 모드 공통 고정값) */
+:root {
+  --page: 246 246 243;
+  --surface: 255 255 255;
+  --surface-raised: 252 252 251;
+  --surface-sunken: 240 239 236;
+  --line: 225 224 217;
+  --ink: 11 11 11;
+  --ink-muted: 82 81 78;
+  --ink-faint: 137 135 129;
+  --brand: 42 120 214; /* series-1 blue (light) */
+  --up: 12 163 12; /* status good */
+  --down: 208 59 59; /* status critical */
+  --warn: 250 178 25; /* status warning */
+  --nodata: 212 211 204;
+  --grid: 225 224 217;
+  color-scheme: light;
+}
+
+.dark {
+  --page: 13 13 13;
+  --surface: 26 26 25;
+  --surface-raised: 33 33 31;
+  --surface-sunken: 20 20 19;
+  --line: 44 44 42;
+  --ink: 240 239 236;
+  --ink-muted: 195 194 183;
+  --ink-faint: 137 135 129;
+  --brand: 57 135 229; /* series-1 blue (dark) */
+  --nodata: 56 56 53;
+  --grid: 44 44 42;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: rgb(var(--page));
+  color: rgb(var(--ink));
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:brightness-110;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:bg-surface-sunken;
+  }
+  .btn-danger {
+    @apply btn border border-down/40 bg-surface text-down hover:bg-down/10;
+  }
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-surface-sunken hover:text-ink;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint
+      focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+  .hint {
+    @apply mt-1 text-xs text-ink-faint;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md border border-line bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-ring {
+    animation: none;
+  }
+}

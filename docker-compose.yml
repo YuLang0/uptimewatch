@@ -1,0 +1,105 @@
+# UptimeWatch — Docker Compose 배포
+#   기본:            docker compose up -d --build        → http://localhost:8080
+#   HTTPS(Caddy):    docker compose --profile https up -d --build
+name: uptimewatch
+
+x-backend: &backend
+  build:
+    context: ./backend
+    secrets: [extra_ca]
+  image: uptimewatch-backend:latest
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-uptimewatch}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 를 .env 에 설정하세요}@db:5432/${POSTGRES_DB:-uptimewatch}
+  networks: [internal, default]
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-uptimewatch}
+      POSTGRES_USER: ${POSTGRES_USER:-uptimewatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 를 .env 에 설정하세요}
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # 데이터 영속성 (컨테이너를 지워도 유지)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [internal]   # DB 는 외부·웹 컨테이너에서 접근 불가
+
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    <<: *backend
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    stop_grace_period: 40s   # 진행 중 검사를 마무리할 시간
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.worker.healthcheck"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  web:
+    build:
+      context: ./frontend
+      secrets: [extra_ca]
+    image: uptimewatch-web:latest
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    ports:
+      # HTTPS 프록시를 쓸 때는 기본값(127.0.0.1)으로 두어 평문 HTTP 를 외부에 노출하지 마세요.
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80"
+
+  caddy:
+    profiles: ["https"]
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+# 선택: TLS 를 가로채는 사내 프록시 환경에서 이미지 빌드 시 신뢰할 CA (이미지에 남지 않음)
+#   cp /path/corp-ca.pem deploy/extra-ca.pem && EXTRA_CA_FILE=./deploy/extra-ca.pem docker compose build
+#   (프로젝트 폴더 안의 파일이어야 합니다)
+secrets:
+  extra_ca:
+    file: ${EXTRA_CA_FILE:-./deploy/no-extra-ca.pem}
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    internal: true
+  default:

@@ -1,0 +1,12 @@
+.env
+backups/
+**/__pycache__/
+**/.venv/
+**/.pytest_cache/
+**/.ruff_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+deploy/*.pem
+!deploy/no-extra-ca.pem
