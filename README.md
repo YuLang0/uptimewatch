@@ -15,6 +15,8 @@
 | 테스트 | Pytest(백엔드 151개) · Vitest(28개) · Playwright E2E(7개) |
 
 > **바로 실행:** `./scripts/setup.sh` → <http://localhost:8080> (자세한 내용은 [3. 빠른 시작](#3-빠른-시작-docker-compose))
+>
+> **서버 배포:** 오라클 클라우드 무료 서버에 올리는 단계별 안내 → [docs/deploy-oracle.md](docs/deploy-oracle.md)
 
 | 대시보드 | 모니터 상세(다크 모드) | 공개 상태 페이지 |
 |---|---|---|
@@ -72,7 +74,9 @@ uptimewatch/
 ├── docker-compose.yml        # 전체 서비스 정의
 ├── .env.example              # 환경변수 템플릿
 ├── deploy/Caddyfile          # HTTPS 리버스 프록시(선택)
-├── scripts/setup.sh         # 한 번에 설치·실행
+├── scripts/setup.sh         # 한 번에 설치·실행 (--domain 으로 HTTPS 배포)
+├── scripts/server-init.sh   # 새 서버 초기 설정(방화벽·스왑·Docker)
+├── docs/deploy-oracle.md    # 오라클 무료 서버 배포 안내
 ├── scripts/backup.sh, restore.sh
 ├── backend/
 │   ├── app/
@@ -194,6 +198,9 @@ SMTP 비밀번호는 **환경변수로만** 주입되며 DB·로그에 저장하
 ---
 
 ## 5. HTTPS 리버스 프록시
+
+> 새 Ubuntu 서버라면 `sudo ./scripts/server-init.sh` 후 `./scripts/setup.sh --domain <도메인>` 한 줄로 아래 방법 A 가 자동 설정됩니다.
+> 오라클 무료 서버 기준 전체 과정: [docs/deploy-oracle.md](docs/deploy-oracle.md)
 
 ### 방법 A — 포함된 Caddy (자동 Let's Encrypt)
 
