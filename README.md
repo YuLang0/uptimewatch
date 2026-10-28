@@ -1,5 +1,7 @@
 # UptimeWatch — 웹사이트 가동률 및 장애 감지 서비스
 
+[![CI](https://github.com/YuLang0/uptimewatch/actions/workflows/ci.yml/badge.svg)](https://github.com/YuLang0/uptimewatch/actions/workflows/ci.yml)
+
 내가 관리하는 웹사이트에 **실제 HTTP/HTTPS 요청**을 주기적으로 보내 응답 상태·응답 시간·TLS 인증서 만료일을 기록하고,
 연속 실패로 장애를 판정해 **대시보드·이메일 알림**을 보내며, **공개 상태 페이지**로 서비스 상태를 공유하는 모니터링 플랫폼입니다.
 
@@ -385,6 +387,16 @@ cd frontend && npx playwright test
 | 프론트엔드 E2E | 등록→정상→일시 실패→장애→복구→알림, SSRF 입력, 공개 페이지 정보 비노출, 사용자 분리, 이메일 미연동·테스트 알림, 다크 모드, 모바일 |
 
 실행 결과는 [`TEST_RESULTS.md`](TEST_RESULTS.md) 에 정리했습니다.
+
+### CI (GitHub Actions)
+`main` 에 push 하거나 PR 을 열면 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) 이 자동으로 실행됩니다.
+
+| 작업 | 내용 |
+|---|---|
+| 백엔드 | PostgreSQL 서비스 컨테이너 + `ruff check` + `pytest` |
+| 프론트엔드 | `tsc -b` + `vitest` + `vite build` |
+| E2E | 모의 대상 서버·API·작업자·프론트엔드를 띄워 Playwright(Chromium) 실행, 실패 시 리포트 업로드 |
+| Docker | `docker compose config` 검증 + 이미지 빌드 |
 
 ---
 
