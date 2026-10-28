@@ -336,5 +336,30 @@ async def test_notification_settings_roundtrip(register) -> None:
 
 
 async def test_health_endpoint(make_client) -> None:
-    r = await make_client().get("/api/health")
+    client = make_client()
+    r = await client.get("/api/health")
     assert r.status_code == 200 and r.json() == {"status": "ok"}
+    # 외부 감시 서비스(UptimeRobot 등)의 HEAD 요청도 정상 응답
+    assert (await client.head("/api/health")).status_code == 200
+
+
+async def test_worker_health_reflects_heartbeat(make_client, sessionmaker) -> None:
+    from app.models import WorkerHeartbeat
+
+    client = make_client()
+    r = await client.get("/api/health/worker")
+    assert r.status_code == 503 and r.json() == {"status": "never"}  # 작업자가 한 번도 실행되지 않음
+
+    now = datetime.now(UTC)
+    async with sessionmaker() as db:
+        db.add(WorkerHeartbeat(worker_id="w-1", started_at=now, last_seen_at=now, checks_performed=0))
+        await db.commit()
+    assert (await client.get("/api/health/worker")).json() == {"status": "ok"}
+    assert (await client.head("/api/health/worker")).status_code == 200
+
+    async with sessionmaker() as db:  # 하트비트가 오래됨 → 작업자 멈춤
+        hb = await db.get(WorkerHeartbeat, "w-1")
+        hb.last_seen_at = now - timedelta(minutes=5)
+        await db.commit()
+    r = await client.get("/api/health/worker")
+    assert r.status_code == 503 and r.json() == {"status": "stale"}

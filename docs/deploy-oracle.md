@@ -133,6 +133,7 @@ cd uptimewatch
    ```
    백업 파일은 서버 안(`~/uptimewatch/backups`)에 쌓입니다. 중요한 데이터라면 가끔 PC 로 내려받아 두세요:
    `scp -i <키 파일> ubuntu@<공용IP>:~/uptimewatch/backups/*.dump .`
+5. **UptimeRobot 으로 내 서버 감시하기** → [8장](#8-uptimerobot-으로-내-서버-감시하기)
 
 ---
 
@@ -170,7 +171,7 @@ cd uptimewatch
 **시작(Start)** 하면 자동으로 다시 동작합니다(Docker 가 부팅 시 시작되고, 작업자가 밀린 검사를 이어서 수행).
 
 문제는 "모니터링 서버 자체가 멈춘 걸 모르는 것"이므로, **다른 무료 모니터링 서비스로 내 UptimeWatch 를 감시**하세요.
-- UptimeRobot(무료 50개) 등에 `https://내도메인/api/health` 를 등록 → 서버가 멈추면 이메일로 알림
+→ [8장 UptimeRobot 등록 방법](#8-uptimerobot-으로-내-서버-감시하기)
 
 ### 하지 말 것 — 가짜 부하 만들기
 CPU 를 일부러 계속 쓰게 하는 스크립트로 기준을 피하는 방법이 커뮤니티에 돌기도 하지만, 회수 정책의 취지를 피해 가는 것이라
@@ -184,7 +185,47 @@ CPU 를 일부러 계속 쓰게 하는 스크립트로 기준을 피하는 방�
 
 ---
 
-## 8. 업데이트 · 관리
+## 8. UptimeRobot 으로 내 서버 감시하기
+
+UptimeWatch 서버가 멈추면(오라클 회수, 서버 장애 등) UptimeWatch 는 스스로 알릴 수 없습니다.
+그래서 **외부 무료 서비스가 내 서버를 대신 확인**하게 해 둡니다.
+
+### 감시할 주소 2개
+
+| 이름(예) | URL | 문제가 생기는 경우 |
+|---|---|---|
+| UptimeWatch 서버 | `https://내도메인/api/health` | 서버 중지, 웹·API·DB 장애 |
+| UptimeWatch 검사 작업자 | `https://내도메인/api/health/worker` | 서버는 켜져 있는데 **검사가 멈춤**(작업자 중지) |
+
+두 주소 모두 정상이면 HTTP 200, 문제가 있으면 503 을 돌려주며, GET·HEAD 요청을 모두 받습니다.
+응답에는 상태(`ok` 등)만 담기고 내부 정보는 들어가지 않습니다.
+
+### 등록 순서
+1. https://uptimerobot.com → **Register for FREE** 로 가입 → 받은 메일에서 이메일 인증
+2. 대시보드에서 **+ New monitor**(새 모니터)
+3. 아래처럼 입력하고 **Create monitor**
+   - **Monitor type**: `HTTP / website monitoring` (HTTP(s))
+   - **URL to monitor**: `https://내도메인/api/health`
+   - **Friendly name**: `UptimeWatch 서버`
+   - **Monitor interval**: 5분 (무료 플랜 기본값)
+   - **How will we notify you? / Alert contacts**: 가입한 이메일 체크(기본 선택됨)
+4. 같은 방법으로 `https://내도메인/api/health/worker` 를 `UptimeWatch 검사 작업자` 로 하나 더 등록
+5. (선택) 휴대폰에 **UptimeRobot 앱**(iOS/Android)을 설치하고 로그인하면 푸시 알림도 받을 수 있습니다.
+
+등록하면 1~2분 안에 두 모니터가 **Up(초록)** 으로 바뀌어야 합니다. Down 으로 나오면 아래를 확인하세요.
+
+| 증상 | 원인·조치 |
+|---|---|
+| 둘 다 Down | 브라우저로 `https://내도메인/api/health` 가 열리는지, 도메인·인증서 확인(10장 문제 해결) |
+| 작업자만 Down | 서버에서 `docker compose ps` 로 worker 상태, `docker compose logs worker` 확인 |
+| 업데이트 직후 잠깐 Down 알림 | `docker compose up -d --build` 로 컨테이너가 재시작되는 동안의 일시적 알림이라 정상입니다 |
+
+> UptimeRobot 화면·메뉴 이름과 무료 플랜 조건(현재 기준 모니터 50개, 5분 간격)은 바뀔 수 있습니다.
+> 비슷한 무료 서비스(Better Stack, Healthchecks 등)도 같은 주소로 등록하면 됩니다.
+
+---
+
+## 9. 업데이트 · 관리
 
 ```bash
 cd ~/uptimewatch
@@ -199,7 +240,7 @@ docker compose logs caddy                    # HTTPS 인증서 관련 로그
 
 ---
 
-## 9. 문제 해결
+## 10. 문제 해결
 
 | 증상 | 확인할 것 |
 |---|---|

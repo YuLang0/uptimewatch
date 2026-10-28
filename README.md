@@ -420,7 +420,7 @@ cd frontend && npx playwright test
 | GET/POST | `/api/notifications`, `/{id}/read`, `/read-all`, `/deliveries`, `/channels`, `/settings`(PUT), `/test` | 알림 |
 | GET/POST/PUT/DELETE | `/api/status-pages[/{id}]` | 상태 페이지 관리 |
 | GET | `/api/public/status/{slug}` | 공개 상태(인증 불필요) |
-| GET | `/api/health` | 헬스체크 |
+| GET·HEAD | `/api/health` · `/api/health/worker` | 헬스체크(서버·DB) · 검사 작업자 하트비트 — 외부 감시 서비스용, 이상 시 503 |
 
 ---
 

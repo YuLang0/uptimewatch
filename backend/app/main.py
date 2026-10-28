@@ -108,7 +108,8 @@ def create_app() -> FastAPI:
             content={"detail": messages[0] if messages else "입력값이 올바르지 않습니다.", "errors": messages},
         )
 
-    @app.get("/api/health", tags=["system"])
+    # 외부 감시 서비스(UptimeRobot 등)는 HEAD 로 확인하는 경우가 많아 GET·HEAD 모두 받습니다.
+    @app.api_route("/api/health", methods=["GET", "HEAD"], tags=["system"])
     async def health() -> dict:
         try:
             async with get_sessionmaker()() as db:
@@ -116,6 +117,18 @@ def create_app() -> FastAPI:
             return {"status": "ok"}
         except Exception:
             return JSONResponse({"status": "error"}, status_code=503)
+
+    @app.api_route("/api/health/worker", methods=["GET", "HEAD"], tags=["system"])
+    async def health_worker() -> dict:
+        """검사 작업자의 하트비트가 최근에 있었는지. 멈췄으면 503 (상세 정보는 노출하지 않음)."""
+        try:
+            async with get_sessionmaker()() as db:
+                status_ = (await overview.worker_status(db, settings))["status"]
+        except Exception:
+            return JSONResponse({"status": "error"}, status_code=503)
+        if status_ != "ok":
+            return JSONResponse({"status": status_}, status_code=503)
+        return {"status": "ok"}
 
     for module in (auth, monitors, overview, notifications):
         app.include_router(module.router)
